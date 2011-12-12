@@ -604,6 +604,7 @@ close ALI;
  my @args = ("./model-single.py","align"."$unique"."cc.temp","$id"."$ch","$unique",">&/dev/null" );
  
  system( '/usr/bin/python', @args );
+ ####python, "args"
 
 my ($res, $chn) = getNearestLocation("$SPIRITEMP/$unique.B99990001.pdb", "$SPIRITEMP/FULLMOD$coils{$sfam}{'nearest'}[0].ent",\@locations, $coils{$sfam}{'nearest'}[0]);
 #print "<script type=\"text/javascript\"> jmolInitialize(\"../spiricoil/jmol\"); jmolApplet(400, \"load $SPIRITEMP/FULLMOD$coils{$sfam}{'nearest'}[0].ent;cartoon; color cartoon structure\");</script>";
