@@ -6,7 +6,7 @@ from modeller.automodel import *
 if __name__ == '__main__':
 	#sys.stdout = open(os.devnull,"w")
 	#sys.stderr = open(os.devnull,"w")
-	os.chdir('../alignments')
+	os.chdir('/home/luca/rackham/astral/alignments/')
 
 
 	env = environ()
@@ -16,4 +16,4 @@ if __name__ == '__main__':
 	a.starting_model = 1
 	a.ending_model = 1
 	a.make()
-	#os.chdir('./UniprotMODELLER')
+	os.chdir('/home/rackham/workspace/UniprotMODELLER/')

@@ -15,8 +15,8 @@ $dbh = rackham::DBConnect('superfamily');
 my $seqid = $ARGV[0];
 my $genome = $ARGV[1];
 my $marginal = 0.01;
-my $TEMPDIR = '../alignments/';
-my $s = $dbh->prepare("SELECT ass.evalue, ass.region, ass.model, ass.sf, t1.description, align.alignment, comb_index.comb, family.evalue, family.px, family.fa, t2.description, genome_sequence.length
+my $TEMPDIR = '/home/luca/rackham/astral/alignments/';
+my $s = $dbh->prepare("SELECT ass.evalue, ass.region, ass.model, ass.sf, t1.description, align.alignment, comb_index.comb, family.evalue, family.px, family.fa, t2.description, genome_sequence.length,protein.protein
                       FROM align, ass, des AS t1, des AS t2, comb, family, protein, genome_sequence, comb_index
                       WHERE ass.auto = align.auto AND
                       protein.protein = genome_sequence.protein AND
@@ -47,7 +47,8 @@ while ( my @temp = $s->fetchrow_array ) {
 	$domain_details{$domain_no}{'px'} = $temp[8];
 	$domain_details{$domain_no}{'fa'} = $temp[9];
 	$domain_details{$domain_no}{'description'} = $temp[10];
-	$domain_details{$domain_no}{'length'} = $temp[11];    
+	$domain_details{$domain_no}{'length'} = $temp[11]; 
+	$domain_details{$domain_no}{'protein'} = $temp[12]; 
     my $sth2=$dbh->prepare( "select name from des where id =$temp[8];" );
 	$sth2->execute;
 	while ( my @temp2 = $sth2->fetchrow_array ) {
@@ -62,8 +63,9 @@ my $id = substr $domain_details{$domain_number}{'closest_structure'},1 ,4 ;
 my $ch = uc(substr $domain_details{$domain_number}{'closest_structure'},5 ,1 );
 my $file = "$domain_details{$domain_number}{'closest_structure'}.ent";
 my $folder = substr $file, 2,2;
-		my $unique = "$seqid"."_"."$genome"."_"."$id"."_"."$ch"."_"."$domain_details{$domain_number}{'model'}"."_"."$domain_details{$domain_number}{'region'}"."_"."$domain_details{$domain_number}{'px'}";
+		my $unique ="$domain_details{$domain_number}{'protein'}"."_"."$id"."_"."$ch"."_"."$domain_details{$domain_number}{'model'}"."_"."$domain_details{$domain_number}{'region'}"."_"."$domain_details{$domain_number}{'px'}";
         #my $unique = int( rand(999999999999999) );
+  unless (-e "$TEMPDIR/align"."$unique".".temp") {      
             open ALI, '>', "$TEMPDIR/align"."$unique".".temp" or die "Cannot open $TEMPDIR/align"."$unique".".temp".": $!\n";
 print ALI ">P1;$id"."$ch\n";
 print ALI "structureX:/home/luca/rackham/astral/$folder/$file:   FIRST : $ch : LAST : $ch ::::\n";
@@ -79,4 +81,5 @@ close ALI;
 
  system( '/usr/bin/python', @args );
  
+}
 }

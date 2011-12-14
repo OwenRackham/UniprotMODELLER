@@ -5,7 +5,7 @@ use warnings;
 use Parallel::ForkManager;
 
 my $filename = $ARGV[0];
-
+my $LOGFILE = "/home/luca/rackham/astral/logs/";
 open FILE, "<$filename" or die $!;
 my @seqs;
 while (<FILE>){
@@ -20,8 +20,10 @@ my $o = 1;
 foreach my $seq (@seqs){
 	print "$o from $t\n";
 	$o++;
+		unless (-e "$LOGFILE"."up_$seq"."_$o.txt") {
 		$manager->start and next;
-		my $command = "perl DO_model.pl $seq up > ../logs/log_$seq"."_$o.txt";
+		my $command = "perl DO_model.pl $seq up > $LOGFILE"."up_$seq"."_$o.txt";
       	system( $command );
       	$manager->finish;
+		}
 }
