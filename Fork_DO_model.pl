@@ -20,9 +20,9 @@ my $o = 1;
 foreach my $seq (@seqs){
 	print "$o from $t\n";
 	$o++;
-		unless (-e "$LOGFILE"."up_$seq"."_$o.txt") {
+		unless (-e "$LOGFILE"."up_$seq"."_$o.log") {
 		$manager->start and next;
-		my $command = "perl DO_model.pl $seq up > $LOGFILE"."up_$seq"."_$o.txt";
+		my $command = "perl DO_model.pl $seq up > $LOGFILE"."up_$seq"."_$o.log";
       	system( $command );
       	$manager->finish;
 		}

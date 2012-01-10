@@ -6,8 +6,13 @@ from modeller.automodel import *
 if __name__ == '__main__':
 	#sys.stdout = open(os.devnull,"w")
 	#sys.stderr = open(os.devnull,"w")
-	os.chdir('/home/luca/rackham/astral/alignments/')
-
+	path = '/home/luca/rackham/astral/alignments/%s' %(sys.argv[4])
+	if os.path.exists(path):
+		os.chdir(path)
+	else:
+		 os.makedirs(path)
+		 os.chdir(path)
+		 
 
 	env = environ()
 	a = automodel(env, alnfile=sys.argv[1],

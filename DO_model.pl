@@ -37,7 +37,12 @@ my $domain_no = 1;
 my %domain_details;
 while ( my @temp = $s->fetchrow_array ) {
 	$domain_details{$domain_no}{'evalue'} = $temp[0];
-	$domain_details{$domain_no}{'region'} = $temp[1];
+	my $region = $temp[1];
+	my @regions = split(/-/,$region);
+	$region =~ s/-/_/g;
+	$domain_details{$domain_no}{'start'} = $regions[0];
+	$domain_details{$domain_no}{'stop'} = $regions[1];
+	$domain_details{$domain_no}{'region'} = $region;
 	$domain_details{$domain_no}{'model'} = $temp[2];
 	$domain_details{$domain_no}{'sf'} = $temp[3];
 	$domain_details{$domain_no}{'description'} = $temp[4];
@@ -63,10 +68,10 @@ my $id = substr $domain_details{$domain_number}{'closest_structure'},1 ,4 ;
 my $ch = uc(substr $domain_details{$domain_number}{'closest_structure'},5 ,1 );
 my $file = "$domain_details{$domain_number}{'closest_structure'}.ent";
 my $folder = substr $file, 2,2;
-		my $unique ="$domain_details{$domain_number}{'protein'}"."_"."$id"."_"."$ch"."_"."$domain_details{$domain_number}{'model'}"."_"."$domain_details{$domain_number}{'region'}"."_"."$domain_details{$domain_number}{'px'}";
+		my $unique ="$domain_details{$domain_number}{'protein'}"."_"."$domain_details{$domain_number}{'region'}";
         #my $unique = int( rand(999999999999999) );
-  unless (-e "$TEMPDIR/align"."$unique".".temp") {      
-            open ALI, '>', "$TEMPDIR/align"."$unique".".temp" or die "Cannot open $TEMPDIR/align"."$unique".".temp".": $!\n";
+ # unless (-e "$TEMPDIR/align"."$unique".".temp") {      
+            open ALI, '>', "$TEMPDIR/$genome/align"."$unique".".temp" or die "Cannot open $TEMPDIR/align"."$unique".".temp".": $!\n";
 print ALI ">P1;$id"."$ch\n";
 print ALI "structureX:/home/luca/rackham/astral/$folder/$file:   FIRST : $ch : LAST : $ch ::::\n";
 print ALI "*\n";
@@ -77,9 +82,51 @@ my $tl = length($altemp);
 print ALI "$altemp"."*\n";
 
 close ALI;
- my @args = ("./model-single.py","align"."$unique".".temp","$id"."$ch","$unique",">&/dev/null" );
+ my @args = ("./model-single.py","align"."$unique".".temp","$id"."$ch","$unique","$genome",">&/dev/null" );
 
  system( '/usr/bin/python', @args );
+ my $cut = 0;
+ my @aligns;
+ while (length($domain_details{$domain_number}{'alignment'}) > 0){
+ 	my $inc = 60;
+ 	if(length($domain_details{$domain_number}{'alignment'}) < 60){
+ 		$inc = length($domain_details{$domain_number}{'alignment'});
+ 	}
+ 	push @aligns,substr($domain_details{$domain_number}{'alignment'},0,$inc,'');
+ }
  
-}
+ open(FILE,"$TEMPDIR"."/"."$genome"."/"."$unique".".B99990001.pdb");
+ open(FILEOUT,">$TEMPDIR"."/"."$genome"."/"."$unique".".pdb");
+ my $flag = 0;
+ while(<FILE>){
+ 	if($flag == 1){
+ 		#REMARK GENOME3D TOTAL TEMPLATES 1
+ 		print FILEOUT "REMARK GENOME3D TOTAL TEMPLATES 1\n";
+ 		#REMARK GENOME3D SELECTION X
+		#REMARK GENOME3D MODELLING X
+		print FILEOUT "REMARK GENOME3D SELECTION SUPERFAMILY\n";
+		print FILEOUT "REMARK GENOME3D MODELLING MODELLER\n";
+		#REMARK GENOME3D START X
+		#REMARK GENOME3D STOP X
+		print FILEOUT "REMARK GENOME3D START $domain_details{$domain_number}{'start'}\n";
+		print FILEOUT "REMARK GENOME3D STOP $domain_details{$domain_number}{'stop'}\n";
+		print FILEOUT "REMARK GENOME3D >$id"."$ch".":$domain_details{$domain_number}{'region'}\n";
+		foreach my $al (@aligns){
+		print FILEOUT "REMARK GENOME3D $al\n";		
+ 		}
+ 		print FILEOUT $_;
+ 		$flag++;
+ 	}else{
+ 		print FILEOUT $_;
+ 		$flag++;
+ 	}
+ }
+ unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".B99990001.pdb");
+ unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".ini");
+ unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".rsr");
+ unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".D00000001");
+ unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".V99990001");
+ unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".sch");
+ 
+#}
 }
