@@ -14,6 +14,7 @@ $dbh = rackham::DBConnect('superfamily');
 
 my $seqid = $ARGV[0];
 my $genome = $ARGV[1];
+my $fo = $ARGV[2];
 my $marginal = 0.01;
 my $TEMPDIR = '/home/luca/rackham/astral/alignments/';
 my $s = $dbh->prepare("SELECT ass.evalue, ass.region, ass.model, ass.sf, t1.description, align.alignment, comb_index.comb, family.evalue, family.px, family.fa, t2.description, genome_sequence.length,protein.protein
@@ -37,11 +38,14 @@ my $domain_no = 1;
 my %domain_details;
 while ( my @temp = $s->fetchrow_array ) {
 	$domain_details{$domain_no}{'evalue'} = $temp[0];
-	my $region = $temp[1];
-	my @regions = split(/-/,$region);
-	$region =~ s/-/_/g;
-	$domain_details{$domain_no}{'start'} = $regions[0];
-	$domain_details{$domain_no}{'stop'} = $regions[1];
+	my @aligned = split(/,/,$temp[1]);
+	my @start = split(/-/,$aligned[0]);
+	my $start = $start[0];
+	my @finish = split(/-/,$aligned[$#aligned]);
+	my $finish = $finish[1];
+	my $region = "$start"."_"."$finish";
+	$domain_details{$domain_no}{'start'} = $start;
+	$domain_details{$domain_no}{'stop'} = $finish;
 	$domain_details{$domain_no}{'region'} = $region;
 	$domain_details{$domain_no}{'model'} = $temp[2];
 	$domain_details{$domain_no}{'sf'} = $temp[3];
@@ -68,10 +72,10 @@ my $id = substr $domain_details{$domain_number}{'closest_structure'},1 ,4 ;
 my $ch = uc(substr $domain_details{$domain_number}{'closest_structure'},5 ,1 );
 my $file = "$domain_details{$domain_number}{'closest_structure'}.ent";
 my $folder = substr $file, 2,2;
-		my $unique ="$domain_details{$domain_number}{'protein'}"."_"."$domain_details{$domain_number}{'region'}";
+		my $unique ="$seqid"."_"."$domain_details{$domain_number}{'region'}";
         #my $unique = int( rand(999999999999999) );
  # unless (-e "$TEMPDIR/align"."$unique".".temp") {      
-            open ALI, '>', "$TEMPDIR/$genome/align"."$unique".".temp" or die "Cannot open $TEMPDIR/align"."$unique".".temp".": $!\n";
+            open ALI, '>', "$TEMPDIR/$fo/align"."$unique".".temp" or die "Cannot open $TEMPDIR/$fo/align"."$unique".".temp".": $!\n";
 print ALI ">P1;$id"."$ch\n";
 print ALI "structureX:/home/luca/rackham/astral/$folder/$file:   FIRST : $ch : LAST : $ch ::::\n";
 print ALI "*\n";
@@ -82,7 +86,7 @@ my $tl = length($altemp);
 print ALI "$altemp"."*\n";
 
 close ALI;
- my @args = ("./model-single.py","align"."$unique".".temp","$id"."$ch","$unique","$genome",">&/dev/null" );
+ my @args = ("./model-single.py","align"."$unique".".temp","$id"."$ch","$unique","$fo",">&/dev/null" );
 
  system( '/usr/bin/python', @args );
  my $cut = 0;
@@ -95,8 +99,8 @@ close ALI;
  	push @aligns,substr($domain_details{$domain_number}{'alignment'},0,$inc,'');
  }
  
- open(FILE,"$TEMPDIR"."/"."$genome"."/"."$unique".".B99990001.pdb");
- open(FILEOUT,">$TEMPDIR"."/"."$genome"."/"."$unique".".pdb");
+ open(FILE,"$TEMPDIR"."/"."$fo"."/"."$unique".".B99990001.pdb");
+ open(FILEOUT,">$TEMPDIR"."/"."$fo"."/"."$unique".".pdb");
  my $flag = 0;
  while(<FILE>){
  	if($flag == 1){
@@ -121,12 +125,14 @@ close ALI;
  		$flag++;
  	}
  }
- unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".B99990001.pdb");
- unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".ini");
- unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".rsr");
- unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".D00000001");
- unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".V99990001");
- unlink("$TEMPDIR"."/"."$genome"."/"."$unique".".sch");
+ 
+ unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".B99990001.pdb");
+ unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".ini");
+ unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".rsr");
+ unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".D00000001");
+ unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".V99990001");
+ unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".sch");
+ unlink("$TEMPDIR"."/"."$fo"."/"."align"."$unique".".temp");
  
 #}
 }
