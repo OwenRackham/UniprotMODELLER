@@ -67,6 +67,10 @@ while ( my @temp = $s->fetchrow_array ) {
 }
 
 foreach my $domain_number (keys %domain_details){
+if(-e "$TEMPDIR"."$seqid"."_"."$domain_details{$domain_number}{'start'}"."_"."$domain_details{$domain_number}{'stop'}".".pdb"){
+	my $cmd = "cp "."$TEMPDIR"."$seqid"."_"."$domain_details{$domain_number}{'start'}"."_"."$domain_details{$domain_number}{'stop'}".".pdb"." .";
+	system($cmd);
+}else{
 
 my $id = substr $domain_details{$domain_number}{'closest_structure'},1 ,4 ;
 my $ch = uc(substr $domain_details{$domain_number}{'closest_structure'},5 ,1 );
@@ -75,7 +79,7 @@ my $folder = substr $file, 2,2;
 		my $unique ="$seqid"."_"."$domain_details{$domain_number}{'region'}";
         #my $unique = int( rand(999999999999999) );
  # unless (-e "$TEMPDIR/align"."$unique".".temp") {      
-            open ALI, '>', "$TEMPDIR/$fo/align"."$unique".".temp" or die "Cannot open $TEMPDIR/$fo/align"."$unique".".temp".": $!\n";
+            open ALI, '>', "$TEMPDIR"."$fo/align"."$unique".".temp" or die "Cannot open $TEMPDIR/$fo/align"."$unique".".temp".": $!\n";
 print ALI ">P1;$id"."$ch\n";
 print ALI "structureX:/home/luca/rackham/astral/$folder/$file:   FIRST : $ch : LAST : $ch ::::\n";
 print ALI "*\n";
@@ -135,4 +139,5 @@ close ALI;
  unlink("$TEMPDIR"."/"."$fo"."/"."align"."$unique".".temp");
  
 #}
+}
 }
