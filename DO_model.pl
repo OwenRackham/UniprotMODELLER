@@ -1,5 +1,4 @@
-
-#!/usr/bin/perl -wT
+#!/usr/bin/perl -w
 
 use strict;
 use warnings;
@@ -8,15 +7,26 @@ use CGI qw/:standard/;
 use DBI;
 use lib '/home/rackham/modules/';
 use rackham;
-
+use Digest::MD5 qw(md5_hex);
+use Data::Dumper;
+#Digest::MD5::md5_hex()
 my ( $dbh, $sth );
 $dbh = rackham::DBConnect('superfamily');
 
 my $seqid = $ARGV[0];
 my $genome = $ARGV[1];
+
+my $digest;
+my $sth2=$dbh->prepare( "select sequence from genome_sequence,protein where protein.protein = genome_sequence.protein and protein.seqid = '$seqid' and protein.genome='$genome';" );
+	$sth2->execute;
+	while ( my @temp2 = $sth2->fetchrow_array ) {
+		$digest = md5_hex($temp2[0]);
+	}
+
 my $fo = $ARGV[2];
 my $marginal = 0.01;
-my $TEMPDIR = '/home/luca/rackham/astral/alignments/';
+#my $TEMPDIR = '/media/scratch/genome3D/pfam_assfiles/models/';
+my $TEMPDIR = '../data';
 my $s = $dbh->prepare("SELECT ass.evalue, ass.region, ass.model, ass.sf, t1.description, align.alignment, comb_index.comb, family.evalue, family.px, family.fa, t2.description, genome_sequence.length,protein.protein
                       FROM align, ass, des AS t1, des AS t2, comb, family, protein, genome_sequence, comb_index
                       WHERE ass.auto = align.auto AND
@@ -65,7 +75,7 @@ while ( my @temp = $s->fetchrow_array ) {
 	}
 	$domain_no++;
 }
-
+#print Dumper \%domain_details;
 foreach my $domain_number (keys %domain_details){
 if(-e "$TEMPDIR"."$seqid"."_"."$domain_details{$domain_number}{'start'}"."_"."$domain_details{$domain_number}{'stop'}".".pdb"){
 	my $cmd = "cp "."$TEMPDIR"."$seqid"."_"."$domain_details{$domain_number}{'start'}"."_"."$domain_details{$domain_number}{'stop'}".".pdb"." .";
@@ -78,10 +88,11 @@ my $file = "$domain_details{$domain_number}{'closest_structure'}.ent";
 my $folder = substr $file, 2,2;
 		my $unique ="$seqid"."_"."$domain_details{$domain_number}{'region'}";
         #my $unique = int( rand(999999999999999) );
- # unless (-e "$TEMPDIR/align"."$unique".".temp") {      
-            open ALI, '>', "$TEMPDIR"."$fo/align"."$unique".".temp" or die "Cannot open $TEMPDIR/$fo/align"."$unique".".temp".": $!\n";
+     
+unless (-e "$TEMPDIR"."/"."$fo"."/"."$unique".".pdb") {      
+open ALI, '>', "$TEMPDIR"."/"."$fo/align"."$unique".".temp" or die "Cannot open $TEMPDIR/$fo/align"."$unique".".temp".": $!\n";
 print ALI ">P1;$id"."$ch\n";
-print ALI "structureX:/home/luca/rackham/astral/$folder/$file:   FIRST : $ch : LAST : $ch ::::\n";
+print ALI "structureX:/media/scratch/genome3D/astral/pdbstyle-2.03/$folder/$file:   FIRST : $ch : LAST : $ch ::::\n";
 print ALI "*\n";
 print ALI ">P1;$unique\n";
 print ALI "sequence:"."$unique"."::::::::\n";
@@ -90,7 +101,7 @@ my $tl = length($altemp);
 print ALI "$altemp"."*\n";
 
 close ALI;
- my @args = ("./model-single.py","align"."$unique".".temp","$id"."$ch","$unique","$fo",">&/dev/null" );
+ my @args = ("./model-single.py","align"."$unique".".man.temp","$id"."$ch","$unique","$fo",">&/dev/null" );
 
  system( '/usr/bin/python', @args );
  my $cut = 0;
@@ -104,16 +115,28 @@ close ALI;
  }
  
  open(FILE,"$TEMPDIR"."/"."$fo"."/"."$unique".".B99990001.pdb");
- open(FILEOUT,">$TEMPDIR"."/"."$fo"."/"."$unique".".pdb");
+print "/tmp/"."$unique".".pdb\n"; 
+open(FILEOUT,">/media/scratch/genome3D/pfam_assfiles/models/tests/"."$unique".".pdb") or die $!;
  my $flag = 0;
  while(<FILE>){
  	if($flag == 1){
+ 		#REMARK GENOME3D NAME uniprot_start_stop
+ 		print FILEOUT "REMARK GENOME3D NAME $unique\n";
+ 		#REMARK GENOME3D UNIPROT_ID
+ 		print FILEOUT "REMARK GENOME3D UNIPROT_ID $seqid \n";
+		#REMARK GENOME3D UNIPROT_MD5
+		print FILEOUT "REMARK GENOME3D UNIPROT_MD5 $digest \n";
+		#REMARK GENOME3D TIMESTAMP YYYY-MM-DD
+ 		print FILEOUT "REMARK GENOME3D TIMESTAMP 2012-02-28\n";
  		#REMARK GENOME3D TOTAL TEMPLATES 1
  		print FILEOUT "REMARK GENOME3D TOTAL TEMPLATES 1\n";
  		#REMARK GENOME3D SELECTION X
 		#REMARK GENOME3D MODELLING X
 		print FILEOUT "REMARK GENOME3D SELECTION SUPERFAMILY\n";
 		print FILEOUT "REMARK GENOME3D MODELLING MODELLER\n";
+		
+		print FILEOUT "REMARK GENOME3D ALIGNMENT_SOURCE SUPERFAMILY \n";
+		
 		#REMARK GENOME3D START X
 		#REMARK GENOME3D STOP X
 		print FILEOUT "REMARK GENOME3D START $domain_details{$domain_number}{'start'}\n";
@@ -125,19 +148,20 @@ close ALI;
  		print FILEOUT $_;
  		$flag++;
  	}else{
+ 		
  		print FILEOUT $_;
  		$flag++;
  	}
  }
  
- unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".B99990001.pdb");
- unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".ini");
- unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".rsr");
- unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".D00000001");
- unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".V99990001");
- unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".sch");
- unlink("$TEMPDIR"."/"."$fo"."/"."align"."$unique".".temp");
+# unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".B99990001.pdb");
+# unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".ini");
+# unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".rsr");
+# unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".D00000001");
+# unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".V99990001");
+# unlink("$TEMPDIR"."/"."$fo"."/"."$unique".".sch");
+# unlink("$TEMPDIR"."/"."$fo"."/"."align"."$unique".".temp");
  
-#}
+}
 }
 }

@@ -6,7 +6,7 @@ from modeller.automodel import *
 if __name__ == '__main__':
 	#sys.stdout = open(os.devnull,"w")
 	#sys.stderr = open(os.devnull,"w")
-	path = '/home/luca/rackham/astral/alignments/%s' %(sys.argv[4])
+	path = '../data/%s' %(sys.argv[4])
 	if os.path.exists(path):
 		os.chdir(path)
 	else:
