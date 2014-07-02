@@ -26,6 +26,7 @@ sub ltrim { my $s = shift; $s =~ s/^\s+//;       return $s };
 
 sub get_astral_missing {
         my ($id) = @_;
+	my $astral_sequence = '';
         my $filename = '/home/rackham/workspace/data/astral_map/astral-rapid-access-1.75.raf.tsv';
         open my $fh, $filename or die "Could not open $filename: $!";
         my @lines = grep /\Q$id/, <$fh>;
@@ -45,6 +46,7 @@ sub get_astral_missing {
 			}elsif($_ eq 'M'){
 				$string_location = "missing in the middle";
 				push(@in_or_out,0);
+				
 			}elsif($_ eq 'E'){
 				$string_location = "missing at the end";
 				push(@in_or_out,0);	
@@ -55,11 +57,17 @@ sub get_astral_missing {
 			}else{
 				#print "$string_location --> $l\n";
 				#push(@in_or_out,1);
+				my @vals = split(//,$l);
+				if($vals[0] eq '.'){
+					$vals[0] = '-';
+				}
+				$astral_sequence .= uc($vals[0]);
 			}
 
 		$counter++;
                 }
-	return \@in_or_out;
+	
+	return (\@in_or_out,$astral_sequence);
 }
 
 #1n9pA 0.02 38 070604 111010   43  370    B .g   B .s   B .k   B .k  43 rr  44 qq  45 rr  46 ff  47 vv  48 dd  49 kk  50 nn  51 gg  52 rr  53 cc  54 nn  55 vv  56 qq  57 hh   M .g   M .n   M .l   M .g   M .s  63 ee 190 rr 191 aa 192 ee 193 tt 194 ll 195 mm 196 ff 197 ss 198 ee 199 hh 200 aa 201 vv 202 ii 203 ss 204 mm 205 rr 206 dd 207 gg 208 kk 209 ll 210 tt 211 ll 212 mm 213 ff 214 rr 215 vv 216 gg 217 nn 218 ll 219 rr 220 nn 221 ss 222 hh 223 mm 224 vv 225 ss 226 aa 227 qq 228 ii 229 rr 230 cc 231 kk 232 ll 233 ll 234 kk 235 ss 236 rr 237 qq 238 tt 239 pp 240 ee 241 gg 242 ee 243 ff 244 ll 245 pp 246 ll 247 dd 248 qq 249 ll 250 ee 251 ll 252 dd 253 vv 254 gg 255 ff 256 ss 257 tt 258 gg 259 aa 260 dd 261 qq 262 ll 263 ff 264 ll 265 vv 266 ss 267 pp 268 ll 269 tt 270 ii 271 cc 272 hh 273 vv 274 ii 275 dd 276 aa 277 kk 278 ss 279 pp 280 ff 281 yy 282 dd 283 ll 284 ss 285 qq 286 rr 287 ss 288 mm 289 qq 290 tt 291 ee 292 qq 293 ff 294 ee 295 vv 296 vv 297 vv 298 ii 299 ll 300 ee 301 gg 302 ii 303 vv 304 ee 305 tt 306 tt 307 gg 308 mm 309 tt 310 cc 311 qq 312 aa 313 rr 314 tt 315 ss 316 yy 317 tt 318 ee 319 dd 320 ee 321 vv 322 ll 323 ww 324 gg 325 hh 326 rr 327 ff 328 ff 329 pp 330 vv 331 ii 332 ss 333 ll 334 ee 335 ee 336 gg 337 ff 338 ff 339 kk 340 vv 341 dd 342 yy 343 ss 344 qq 345 ff 346 hh 347 aa 348 tt 349 ff 350 ee 351 vv 352 pp 353 tt 354 pp 355 pp 356 yy 357 ss 358 vv 359 kk 360 ee 361 qq 362 ee 363 ee 364 mm 365 ll 366 ll 367 mm 368 ss 369 ss 370 pp   E .l
@@ -136,7 +144,7 @@ if(-e "$TEMPDIR"."$seqid"."_"."$domain_details{$domain_number}{'start'}"."_"."$d
 
 my $id = substr $domain_details{$domain_number}{'closest_structure'},1 ,4 ;
 my $ch = uc(substr $domain_details{$domain_number}{'closest_structure'},5 ,1 );
-my $in_or_out = get_astral_missing($id.$ch);
+my ($in_or_out,$astral_sequence) = get_astral_missing($id.$ch);
 my $file = "$domain_details{$domain_number}{'closest_structure'}.ent";
 my $folder = substr $file, 2,2;
 		my $unique ="$seqid"."_"."$domain_details{$domain_number}{'region'}";
@@ -144,32 +152,52 @@ my $folder = substr $file, 2,2;
      
 unless (-e "$TEMPDIR"."/"."$fo"."/"."$unique".".pdb") {      
 open ALI, '>', "$TEMPDIR"."/"."$fo/align"."$unique".".temp" or die "Cannot open $TEMPDIR/$fo/align"."$unique".".temp".": $!\n";
-print ALI ">P1;$id"."$ch\n";
-print ALI "structureX:/media/scratch/genome3D/astral/pdbstyle-2.03/$folder/$file:   FIRST : $ch : LAST : $ch ::::\n";
-print ALI "*\n";
-print ALI ">P1;$unique\n";
-print ALI "sequence:"."$unique"."::::::::\n";
-print "$domain_details{$domain_number}{'alignment'}\n";
+#print "$domain_details{$domain_number}{'alignment'}\n";
 #'-' x 5
 my @altemp = split('',$domain_details{$domain_number}{'alignment'});
-my $altemp = '-' x ($domain_details{$domain_number}{'modstart'}-1);
+my @modlr = split('',$astral_sequence);
+my @empty = (3) x ($domain_details{$domain_number}{'modstart'}-1);
+my $altemp = '';
+my $modtemp = '';
 my @res_nums;
-my $res_num = $domain_details{$domain_number}{'start'};
+my @merged_in_or_out = (@empty, @{$in_or_out});
+my @merged_altemp = (@empty, @altemp);
+my $res_num = $domain_details{$domain_number}{'start'}-($domain_details{$domain_number}{'modstart'}-1);
 #print "START --> $domain_details{$domain_number}{'start'}";
-my $tla = scalar(@altemp)-1;
+my $tla = scalar(@merged_altemp)-1;
     for (my $i=0; $i <= $tla; $i++) {
-    	if(@{$in_or_out}[$i]){
-		if(checkCase($altemp[$i])){
-			$altemp .= $altemp[$i];
-			#print "$res_num\n";
+    	if($merged_in_or_out[$i]==1){
+		if(checkCase($merged_altemp[$i])){
+			$altemp .= $merged_altemp[$i];
+			$modtemp .= $modlr[$i];
 			push(@res_nums,$res_num);
-		}elsif($altemp[$i] eq '-'){
-			$altemp .= $altemp[$i];
+		}elsif($merged_altemp[$i] eq '-'){
+			$altemp .= $merged_altemp[$i];
+			$modtemp .= $modlr[$i];
+			push(@res_nums,$res_num);
+		}else{
+			$altemp .= uc($merged_altemp[$i]);
+			$modtemp .= '-';
 			push(@res_nums,$res_num);
 		}
+	}elsif($merged_in_or_out[$i]==0){
+		$altemp .= $merged_altemp[$i];
+		$modtemp .= '-';
+		push(@res_nums,$res_num);
+	}else{
+		$altemp .= '-';
+                $modtemp .= $modlr[$i];
+                push(@res_nums,$res_num);
 	}
 	$res_num++;
     } 
+
+print ALI ">P1;$id"."$ch\n";
+print ALI "structureX:/media/scratch/genome3D/astral/pdbstyle-2.03/$folder/$file:   FIRST : $ch : LAST : $ch ::::\n";
+print ALI "$modtemp*\n";
+print ALI ">P1;$unique\n";
+print ALI "sequence:"."$unique"."::::::::\n";
+
 #print @res_nums;
 #my $altemp = uc($domain_details{$domain_number}{'alignment'});
 my $tl = length($altemp);
